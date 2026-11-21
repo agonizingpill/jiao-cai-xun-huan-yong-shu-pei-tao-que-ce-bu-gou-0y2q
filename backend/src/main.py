@@ -35,7 +35,7 @@ def login(d:Login,s=Depends(session)):
 def me(u=Depends(current)):return {'email':u.email,'role':u.role}
 @app.get('/archive')
 def archive(s=Depends(session),u=Depends(current)):
-    return {m.__tablename__:[pack(x)for x in s.scalars(select(m).order_by(m.id))]for m in (Edition,Compatibility,Classroom,Student,Copy,Inspection,Pack,PackLine,Assignment,Purchase,Account,DepositEntry)}
+    return {m.__tablename__:[pack(x)for x in s.scalars(select(m).order_by(m.id))]for m in (Edition,Compatibility,Classroom,Student,Copy,Inspection,Pack,PackLine,Assignment,Purchase,PackCancellation,Account,DepositEntry)}
 @app.get('/audits')
 def audits(s=Depends(session),u=Depends(current)):return [pack(x)for x in s.scalars(select(Audit).order_by(Audit.id.desc()).limit(50))]
 @app.post('/editions')
@@ -75,6 +75,7 @@ def pack_new(d:PackInput,s=Depends(session),u=Depends(writer)):
 @app.post('/packs/{id}/recommend')
 def recommend(id:int,s=Depends(session),u=Depends(writer)):
     p=lock(s,Pack,id)
+    if p.state=='cancelled':raise HTTPException(409,'已撤销配套不再分析课程共需')
     if p.ml_state not in ('recorded','failed'):raise HTTPException(409,'只可估计新配套或失败重试')
     p.ml_state='queued';p.error=None;s.commit()
     try:q.rpush('book-baskets',id)
@@ -83,6 +84,9 @@ def recommend(id:int,s=Depends(session),u=Depends(writer)):
 @app.post('/packs/{id}/reserve')
 def reserve(id:int,s=Depends(session),u=Depends(supervisor)):
     x=packs.reserve(s,id,u);s.commit();return x
+@app.post('/packs/{id}/cancel')
+def cancel(id:int,d:CancelInput,s=Depends(session),u=Depends(supervisor)):
+    x=packs.cancel(s,id,d,u);s.commit();return x
 @app.post('/purchases/{id}/receive')
 def receive(id:int,d:ReceiveInput,s=Depends(session),u=Depends(supervisor)):
     x=packs.receive(s,id,d,u);s.commit();return x

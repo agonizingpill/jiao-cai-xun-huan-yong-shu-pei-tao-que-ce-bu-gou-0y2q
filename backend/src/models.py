@@ -40,6 +40,9 @@ class Assignment(Base):
 class Purchase(Base):
     __tablename__='purchases'
     id=Column(Integer,primary_key=True);line_id=Column(Integer,ForeignKey('pack_lines.id'),unique=True,nullable=False);ordered=Column(Integer,nullable=False);received=Column(Integer,default=0);state=Column(String(20),default='open')
+class PackCancellation(Base):
+    __tablename__='pack_cancellations'
+    id=Column(Integer,primary_key=True);pack_id=Column(Integer,ForeignKey('packs.id'),unique=True,nullable=False);actor=Column(String(100),nullable=False);reason=Column(String(250),nullable=False);released=Column(Integer,default=0);retained=Column(Integer,default=0);stopped=Column(Integer,default=0);detail=Column(JSON,nullable=False)
 class Account(Base):
     __tablename__='accounts'
     id=Column(Integer,primary_key=True);student_id=Column(Integer,ForeignKey('students.id'),nullable=False);term=Column(String(30),nullable=False);balance_cents=Column(Integer,default=0);state=Column(String(20),default='open')
